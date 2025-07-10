@@ -14,7 +14,7 @@ export default function QueryViewer() {
     setResult(null);
 
     try {
-      const res = await fetch("/query", {
+      const res = await fetch("https://shellsync.onrender.com/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
