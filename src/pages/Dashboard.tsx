@@ -1,6 +1,7 @@
 // src/pages/Dashboard.tsx
 
 import { useState, useEffect } from "react";
+import { getToken } from "../utils/auth";
 
 interface Boat {
   id: number;
@@ -17,10 +18,15 @@ export default function Dashboard() {
   const fetchBoats = async () => {
     try {
       setLoading(true);
-      setError(""); // clear old errors
+      setError("");
+
+      const token = getToken();
+      if (!token) throw new Error("User not logged in");
 
       const res = await fetch("https://shellsync.onrender.com/boats", {
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
@@ -44,17 +50,23 @@ export default function Dashboard() {
   };
 
   const handleCheckOut = async (id: number) => {
+    const token = getToken();
     await fetch(`https://shellsync.onrender.com/boats/${id}/checkout`, {
       method: "POST",
-      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     fetchBoats();
   };
 
   const handleCheckIn = async (id: number) => {
+    const token = getToken();
     await fetch(`https://shellsync.onrender.com/boats/${id}/checkin`, {
       method: "POST",
-      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     fetchBoats();
   };

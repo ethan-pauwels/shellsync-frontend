@@ -3,6 +3,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import QueryViewer from "./pages/QueryViewer";
 import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login"; // 👈 new import
 
 function App() {
   return (
@@ -15,12 +16,16 @@ function App() {
           <Link to="/admin/query" className="text-blue-600 hover:underline">
             Query Viewer
           </Link>
+          <Link to="/login" className="text-blue-600 hover:underline">
+            Login
+          </Link>
         </nav>
       </div>
 
       <Routes>
-        <Route path="/admin/query" element={<QueryViewer />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin/query" element={<QueryViewer />} />
+        <Route path="/login" element={<Login />} /> {/* 👈 new route */}
         <Route path="*" element={<div className="p-6">Welcome to ShellSync</div>} />
       </Routes>
     </Router>
