@@ -2,21 +2,42 @@
 
 import { useState, useEffect } from "react";
 
+interface Boat {
+  id: number;
+  name: string;
+  type: string;
+  status: string;
+}
+
 export default function Dashboard() {
-  const [boats, setBoats] = useState([]);
+  const [boats, setBoats] = useState<Boat[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fetchBoats = async () => {
     try {
       setLoading(true);
+      setError(""); // clear old errors
+
       const res = await fetch("https://shellsync.onrender.com/boats", {
         credentials: "include",
       });
+
+      if (!res.ok) {
+        throw new Error(`Backend returned ${res.status}`);
+      }
+
       const data = await res.json();
-      setBoats(data);
-    } catch (err) {
+
+      if (Array.isArray(data)) {
+        setBoats(data);
+      } else {
+        throw new Error("Unexpected response format");
+      }
+    } catch (err: any) {
+      console.error("Error fetching boats:", err);
       setError("Failed to load boats");
+      setBoats([]);
     } finally {
       setLoading(false);
     }
@@ -49,7 +70,7 @@ export default function Dashboard() {
       {loading && <p>Loading boats...</p>}
       {error && <p className="text-red-600">{error}</p>}
 
-      {boats.length === 0 ? (
+      {!loading && !error && boats.length === 0 ? (
         <p>No boats found</p>
       ) : (
         <table className="table-auto w-full border-collapse border border-gray-300">
@@ -62,29 +83,30 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {boats.map((boat: any) => (
-              <tr key={boat.id} className="even:bg-gray-50">
-                <td className="border p-2">{boat.name}</td>
-                <td className="border p-2">{boat.type}</td>
-                <td className="border p-2 capitalize">{boat.status}</td>
-                <td className="border p-2 space-x-2">
-                  <button
-                    className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
-                    onClick={() => handleCheckOut(boat.id)}
-                    disabled={boat.status !== "available"}
-                  >
-                    Check Out
-                  </button>
-                  <button
-                    className="bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
-                    onClick={() => handleCheckIn(boat.id)}
-                    disabled={boat.status !== "checked_out"}
-                  >
-                    Check In
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {Array.isArray(boats) &&
+              boats.map((boat) => (
+                <tr key={boat.id} className="even:bg-gray-50">
+                  <td className="border p-2">{boat.name}</td>
+                  <td className="border p-2">{boat.type}</td>
+                  <td className="border p-2 capitalize">{boat.status}</td>
+                  <td className="border p-2 space-x-2">
+                    <button
+                      className="bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
+                      onClick={() => handleCheckOut(boat.id)}
+                      disabled={boat.status !== "available"}
+                    >
+                      Check Out
+                    </button>
+                    <button
+                      className="bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
+                      onClick={() => handleCheckIn(boat.id)}
+                      disabled={boat.status !== "checked_out"}
+                    >
+                      Check In
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       )}
