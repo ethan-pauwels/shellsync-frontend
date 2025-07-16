@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import { useState, useEffect } from "react";
 import { getToken, clearToken } from "../utils/auth";
 
@@ -39,13 +40,8 @@ export default function Dashboard() {
       }
 
       const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setBoats(data);
-        setFilteredBoats(data);
-      } else {
-        throw new Error("Unexpected response format");
-      }
+      setBoats(data);
+      setFilteredBoats(data);
     } catch (err: any) {
       console.error("Error fetching boats:", err);
       setError(err.message || "❌ Failed to load boats");
@@ -138,7 +134,11 @@ export default function Dashboard() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ boat_id: id, start_time: startTime, end_time: endTime }),
+        body: JSON.stringify({
+          boat_id: id,
+          start_time: new Date(startTime).toISOString(),
+          end_time: new Date(endTime).toISOString(),
+        }),
       });
 
       const resBody = await res.text();
@@ -163,14 +163,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const token = getToken();
-      if (token) {
-        fetchBoats();
-        clearInterval(interval);
-      }
-    }, 300);
-    return () => clearInterval(interval);
+    const token = getToken();
+    if (token) fetchBoats();
   }, []);
 
   return (
