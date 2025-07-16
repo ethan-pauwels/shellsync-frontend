@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getToken } from "../utils/auth";
+import { getToken, clearToken } from "../utils/auth";
 
 interface Boat {
   id: number;
@@ -10,6 +10,8 @@ interface Boat {
 
 export default function Dashboard() {
   const [boats, setBoats] = useState<Boat[]>([]);
+  const [filteredBoats, setFilteredBoats] = useState<Boat[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [workingBoatId, setWorkingBoatId] = useState<number | null>(null);
@@ -40,6 +42,7 @@ export default function Dashboard() {
 
       if (Array.isArray(data)) {
         setBoats(data);
+        setFilteredBoats(data);
       } else {
         throw new Error("Unexpected response format");
       }
@@ -47,23 +50,29 @@ export default function Dashboard() {
       console.error("Error fetching boats:", err);
       setError(err.message || "❌ Failed to load boats");
       setBoats([]);
+      setFilteredBoats([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    const filtered = boats.filter((boat) =>
+      `${boat.name} ${boat.type}`.toLowerCase().includes(term.toLowerCase())
+    );
+    setFilteredBoats(filtered);
   };
 
   const handleCheckOut = async (id: number) => {
     const token = getToken();
     if (!token) {
       setError("❌ You must be logged in to check out a boat");
-      console.error("No token found — user must be logged in.");
       return;
     }
 
     try {
-      console.log(`📤 Attempting to check out boat ID ${id}`);
       setWorkingBoatId(id);
-
       const res = await fetch(`https://shellsync.onrender.com/boats/${id}/checkout`, {
         method: "POST",
         headers: {
@@ -71,10 +80,7 @@ export default function Dashboard() {
         },
       });
 
-      console.log("Checkout response:", res.status);
       const resBody = await res.text();
-      console.log("Checkout response body:", resBody);
-
       if (!res.ok) {
         throw new Error(`Checkout failed with status ${res.status}: ${resBody}`);
       }
@@ -105,9 +111,9 @@ export default function Dashboard() {
         },
       });
 
+      const resBody = await res.text();
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Check-in failed with status ${res.status}: ${text}`);
+        throw new Error(`Check-in failed with status ${res.status}: ${resBody}`);
       }
 
       setError("✅ Boat checked in successfully");
@@ -118,6 +124,11 @@ export default function Dashboard() {
     } finally {
       setWorkingBoatId(null);
     }
+  };
+
+  const handleLogout = () => {
+    clearToken();
+    window.location.href = "/";
   };
 
   useEffect(() => {
@@ -131,18 +142,42 @@ export default function Dashboard() {
         console.log("⏳ Waiting for token...");
       }
     }, 300);
-
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Boat Dashboard</h1>
+      {/* ✅ Tailwind Visual Test */}
+      <div className="bg-green-300 text-black p-4 rounded-xl mb-6 shadow-md text-center font-semibold">
+        ✅ If you see this green box, Tailwind is working!
+      </div>
+
+      {/* Navbar */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Boat Dashboard</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm"
+        >
+          Logout
+        </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by name or type..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="w-full max-w-md px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
 
       {loading && <p className="text-gray-600">Loading boats...</p>}
       {error && <p className="text-red-600 font-medium mb-4">{error}</p>}
 
-      {boats.length > 0 ? (
+      {filteredBoats.length > 0 ? (
         <div className="overflow-x-auto shadow rounded-2xl">
           <table className="min-w-full border border-gray-200 bg-white rounded-lg overflow-hidden">
             <thead className="bg-gray-100">
@@ -154,7 +189,7 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {boats.map((boat) => (
+              {filteredBoats.map((boat) => (
                 <tr
                   key={boat.id}
                   className="border-t hover:bg-gray-50 transition-colors"
