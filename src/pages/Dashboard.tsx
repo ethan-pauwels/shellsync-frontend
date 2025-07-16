@@ -15,6 +15,9 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [workingBoatId, setWorkingBoatId] = useState<number | null>(null);
+  const [reservingBoatId, setReservingBoatId] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   const fetchBoats = async () => {
     try {
@@ -22,7 +25,6 @@ export default function Dashboard() {
       setError("");
 
       const token = getToken();
-      console.log("Token being used:", token);
       if (!token) throw new Error("User not logged in");
 
       const res = await fetch("https://shellsync.onrender.com/boats", {
@@ -31,14 +33,12 @@ export default function Dashboard() {
         },
       });
 
-      console.log("Fetch /boats response:", res.status);
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Backend returned ${res.status}: ${text}`);
       }
 
       const data = await res.json();
-      console.log("Fetched boat data:", data);
 
       if (Array.isArray(data)) {
         setBoats(data);
@@ -75,15 +75,11 @@ export default function Dashboard() {
       setWorkingBoatId(id);
       const res = await fetch(`https://shellsync.onrender.com/boats/${id}/checkout`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const resBody = await res.text();
-      if (!res.ok) {
-        throw new Error(`Checkout failed with status ${res.status}: ${resBody}`);
-      }
+      if (!res.ok) throw new Error(`Checkout failed: ${resBody}`);
 
       setError("✅ Boat checked out successfully");
       await fetchBoats();
@@ -106,21 +102,56 @@ export default function Dashboard() {
       setWorkingBoatId(id);
       const res = await fetch(`https://shellsync.onrender.com/boats/${id}/checkin`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const resBody = await res.text();
-      if (!res.ok) {
-        throw new Error(`Check-in failed with status ${res.status}: ${resBody}`);
-      }
+      if (!res.ok) throw new Error(`Check-in failed: ${resBody}`);
 
       setError("✅ Boat checked in successfully");
       await fetchBoats();
     } catch (err) {
-      console.error("Checkin error:", err);
+      console.error("Check-in error:", err);
       setError("❌ Failed to check in boat");
+    } finally {
+      setWorkingBoatId(null);
+    }
+  };
+
+  const handleReserve = async (id: number) => {
+    const token = getToken();
+    if (!token) {
+      setError("❌ You must be logged in to reserve a boat");
+      return;
+    }
+
+    if (!startTime || !endTime) {
+      setError("❌ Start and end time required");
+      return;
+    }
+
+    try {
+      setWorkingBoatId(id);
+      const res = await fetch(`https://shellsync.onrender.com/reservations`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ boat_id: id, start_time: startTime, end_time: endTime }),
+      });
+
+      const resBody = await res.text();
+      if (!res.ok) throw new Error(`Reservation failed: ${resBody}`);
+
+      setError("✅ Reservation successful");
+      setReservingBoatId(null);
+      setStartTime("");
+      setEndTime("");
+      await fetchBoats();
+    } catch (err) {
+      console.error("Reservation error:", err);
+      setError("❌ Failed to reserve boat");
     } finally {
       setWorkingBoatId(null);
     }
@@ -135,11 +166,8 @@ export default function Dashboard() {
     const interval = setInterval(() => {
       const token = getToken();
       if (token) {
-        console.log("✅ Token found, fetching boats...");
         fetchBoats();
         clearInterval(interval);
-      } else {
-        console.log("⏳ Waiting for token...");
       }
     }, 300);
     return () => clearInterval(interval);
@@ -147,11 +175,6 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* ✅ Tailwind Visual Test */}
-      <div className="bg-green-300 text-black p-4 rounded-xl mb-6 shadow-md text-center font-semibold">
-        ✅ If you see this green box, Tailwind is working!
-      </div>
-
       {/* Navbar */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Boat Dashboard</h1>
@@ -190,34 +213,68 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {filteredBoats.map((boat) => (
-                <tr
-                  key={boat.id}
-                  className="border-t hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-gray-800">{boat.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{boat.type}</td>
-                  <td className="px-4 py-3 capitalize text-gray-700">{boat.status}</td>
-                  <td className="px-4 py-3 space-x-2">
-                    <button
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-xl text-sm disabled:opacity-50"
-                      onClick={() => handleCheckOut(boat.id)}
-                      disabled={
-                        boat.status !== "available" || workingBoatId === boat.id
-                      }
-                    >
-                      Check Out
-                    </button>
-                    <button
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm disabled:opacity-50"
-                      onClick={() => handleCheckIn(boat.id)}
-                      disabled={
-                        boat.status !== "checked_out" || workingBoatId === boat.id
-                      }
-                    >
-                      Check In
-                    </button>
-                  </td>
-                </tr>
+                <>
+                  <tr key={boat.id} className="border-t hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-800">{boat.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{boat.type}</td>
+                    <td className="px-4 py-3 capitalize text-gray-700">{boat.status}</td>
+                    <td className="px-4 py-3 space-x-2">
+                      <button
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-xl text-sm disabled:opacity-50"
+                        onClick={() => handleCheckOut(boat.id)}
+                        disabled={boat.status !== "available" || workingBoatId === boat.id}
+                      >
+                        Check Out
+                      </button>
+                      <button
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm disabled:opacity-50"
+                        onClick={() => handleCheckIn(boat.id)}
+                        disabled={boat.status !== "checked_out" || workingBoatId === boat.id}
+                      >
+                        Check In
+                      </button>
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm disabled:opacity-50"
+                        onClick={() => setReservingBoatId(boat.id)}
+                        disabled={boat.status !== "available"}
+                      >
+                        Reserve
+                      </button>
+                    </td>
+                  </tr>
+                  {reservingBoatId === boat.id && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3 bg-gray-50">
+                        <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                          <input
+                            type="datetime-local"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                            className="border rounded px-2 py-1"
+                          />
+                          <input
+                            type="datetime-local"
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                            className="border rounded px-2 py-1"
+                          />
+                          <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-sm"
+                            onClick={() => handleReserve(boat.id)}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            className="text-sm text-gray-500 hover:underline"
+                            onClick={() => setReservingBoatId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
