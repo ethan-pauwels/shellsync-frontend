@@ -1,6 +1,7 @@
-// src/pages/Dashboard.tsx
 import { useState, useEffect } from "react";
 import { getToken, clearToken } from "../utils/auth";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 
 interface Boat {
   id: number;
@@ -9,9 +10,20 @@ interface Boat {
   status: string;
 }
 
+interface Reservation {
+  reservation_id: number;
+  boat_id: number;
+  boat_name: string;
+  boat_type: string;
+  start_time: string;
+  end_time: string;
+}
+
 export default function Dashboard() {
   const [boats, setBoats] = useState<Boat[]>([]);
   const [filteredBoats, setFilteredBoats] = useState<Boat[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,6 +61,24 @@ export default function Dashboard() {
       setFilteredBoats([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      const token = getToken();
+      const res = await fetch("https://shellsync.onrender.com/reservations/upcoming", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch reservations");
+
+      const data = await res.json();
+      setReservations(data);
+    } catch (err) {
+      console.error("Error fetching reservations:", err);
     }
   };
 
@@ -149,6 +179,7 @@ export default function Dashboard() {
       setStartTime("");
       setEndTime("");
       await fetchBoats();
+      await fetchReservations();
     } catch (err) {
       console.error("Reservation error:", err);
       setError("❌ Failed to reserve boat");
@@ -164,8 +195,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     const token = getToken();
-    if (token) fetchBoats();
+    if (token) {
+      fetchBoats();
+      fetchReservations();
+    }
   }, []);
+
+  const reservationDates = reservations.map(r => new Date(r.start_time).toDateString());
+
+  const tileContent = ({ date }: { date: Date }) => {
+    const isReserved = reservationDates.includes(date.toDateString());
+    return isReserved ? (
+      <div className="mt-1 w-1 h-1 rounded-full bg-red-500 mx-auto" />
+    ) : null;
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -178,6 +221,31 @@ export default function Dashboard() {
         >
           Logout
         </button>
+      </div>
+
+      {/* Calendar Toggle */}
+      <div className="mb-6">
+        <button
+          onClick={() => setCalendarOpen(!calendarOpen)}
+          className="text-sm px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white"
+        >
+          {calendarOpen ? "Hide Reservation Calendar" : "Show Reservation Calendar"}
+        </button>
+
+        {calendarOpen && (
+          <div className="mt-4 border p-4 rounded-lg shadow bg-white">
+            <h2 className="text-lg font-semibold mb-2">Upcoming Reservations</h2>
+            <Calendar tileContent={tileContent} />
+            <ul className="mt-4 space-y-1 text-sm">
+              {reservations.map((r) => (
+                <li key={r.reservation_id}>
+                  {new Date(r.start_time).toLocaleDateString()} —{" "}
+                  <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Search Bar */}
