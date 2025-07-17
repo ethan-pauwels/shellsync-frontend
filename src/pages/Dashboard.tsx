@@ -240,6 +240,8 @@ export default function Dashboard() {
               {reservations.map((r) => (
                 <li key={r.reservation_id}>
                   {new Date(r.start_time).toLocaleDateString()} —{" "}
+                  {new Date(r.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} to{" "}
+                  {new Date(r.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} —{" "}
                   <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
                 </li>
               ))}
