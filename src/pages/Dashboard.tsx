@@ -23,9 +23,13 @@ function formatForDateTimeLocalInput(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const offset = d.getTimezoneOffset();
   const local = new Date(d.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+  return local.toISOString().slice(0, 16);
 }
 
+function formatUTCtoLocalDisplay(datetime: string): string {
+  const d = new Date(datetime);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function Dashboard() {
   const [boats, setBoats] = useState<Boat[]>([]);
@@ -49,9 +53,7 @@ export default function Dashboard() {
       if (!token) throw new Error("User not logged in");
 
       const res = await fetch("https://shellsync.onrender.com/boats", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
@@ -76,9 +78,7 @@ export default function Dashboard() {
     try {
       const token = getToken();
       const res = await fetch("https://shellsync.onrender.com/reservations/upcoming", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Failed to fetch reservations");
@@ -180,7 +180,12 @@ export default function Dashboard() {
       });
 
       const resBody = await res.text();
-      if (!res.ok) throw new Error(`Reservation failed: ${resBody}`);
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error("🚫 This boat is already reserved for that time.");
+        }
+        throw new Error(`Reservation failed: ${resBody}`);
+      }
 
       setError("✅ Reservation successful");
       setReservingBoatId(null);
@@ -188,9 +193,9 @@ export default function Dashboard() {
       setEndTime("");
       await fetchBoats();
       await fetchReservations();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Reservation error:", err);
-      setError("❌ Failed to reserve boat");
+      setError(err.message || "❌ Failed to reserve boat");
     } finally {
       setWorkingBoatId(null);
     }
@@ -245,14 +250,17 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold mb-2">Upcoming Reservations</h2>
             <Calendar tileContent={tileContent} />
             <ul className="mt-4 space-y-1 text-sm">
-              {reservations.map((r) => (
-                <li key={r.reservation_id}>
-                  {new Date(r.start_time).toLocaleDateString()} —{" "}
-                  {new Date(r.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} to{" "}
-                  {new Date(r.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} —{" "}
-                  <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
-                </li>
-              ))}
+              {reservations.map((r) => {
+                const start = new Date(r.start_time);
+                return (
+                  <li key={r.reservation_id}>
+                    {start.toLocaleDateString()} —{" "}
+                    {formatUTCtoLocalDisplay(r.start_time)} to{" "}
+                    {formatUTCtoLocalDisplay(r.end_time)} —{" "}
+                    <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
