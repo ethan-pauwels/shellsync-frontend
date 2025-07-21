@@ -19,6 +19,14 @@ interface Reservation {
   end_time: string;
 }
 
+function formatForDateTimeLocalInput(date: string | Date): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const offset = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+}
+
+
 export default function Dashboard() {
   const [boats, setBoats] = useState<Boat[]>([]);
   const [filteredBoats, setFilteredBoats] = useState<Boat[]>([]);
@@ -312,13 +320,13 @@ export default function Dashboard() {
                         <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
                           <input
                             type="datetime-local"
-                            value={startTime}
+                            value={startTime ? formatForDateTimeLocalInput(startTime) : ""}
                             onChange={(e) => setStartTime(e.target.value)}
                             className="border rounded px-2 py-1"
                           />
                           <input
                             type="datetime-local"
-                            value={endTime}
+                            value={endTime ? formatForDateTimeLocalInput(endTime) : ""}
                             onChange={(e) => setEndTime(e.target.value)}
                             className="border rounded px-2 py-1"
                           />
