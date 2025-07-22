@@ -5,7 +5,8 @@ import QueryViewer from "./pages/QueryViewer";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
-import { getUserRole } from "./utils/auth"; // 👈 NEW
+import BrokenBoats from "./pages/BrokenBoats"; // ✅ NEW
+import { getUserRole } from "./utils/auth";
 
 function App() {
   const role = getUserRole();
@@ -25,9 +26,14 @@ function App() {
           )}
 
           {(role === "admin" || role === "coach") && (
-            <Link to="/admin/query" className="text-blue-600 hover:underline">
-              Query Viewer
-            </Link>
+            <>
+              <Link to="/admin/query" className="text-blue-600 hover:underline">
+                Query Viewer
+              </Link>
+              <Link to="/broken-boats" className="text-blue-600 hover:underline">
+                Broken Boats
+              </Link>
+            </>
           )}
 
           <Link to="/login" className="text-blue-600 hover:underline">
@@ -55,6 +61,17 @@ function App() {
           element={
             role === "admin" || role === "coach" ? (
               <QueryViewer />
+            ) : (
+              <div className="p-6 text-red-600 font-semibold">Access Denied</div>
+            )
+          }
+        />
+
+        <Route
+          path="/broken-boats"
+          element={
+            role === "admin" || role === "coach" ? (
+              <BrokenBoats />
             ) : (
               <div className="p-6 text-red-600 font-semibold">Access Denied</div>
             )
