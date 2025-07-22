@@ -3,7 +3,6 @@ import { getToken, clearToken, getUserRole } from "../utils/auth";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
-
 interface Boat {
   id: number;
   name: string;
@@ -37,6 +36,7 @@ export default function Dashboard() {
   const [filteredBoats, setFilteredBoats] = useState<Boat[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -219,7 +219,9 @@ export default function Dashboard() {
     }
   }, []);
 
-  const reservationDates = reservations.map(r => new Date(r.start_time + "Z").toDateString());
+  const reservationDates = reservations.map(r =>
+    new Date(r.start_time + "Z").toDateString()
+  );
 
   const tileContent = ({ date }: { date: Date }) => {
     const isReserved = reservationDates.includes(date.toDateString());
@@ -228,9 +230,12 @@ export default function Dashboard() {
     ) : null;
   };
 
+  const reservationsForSelectedDate = selectedDate
+    ? reservations.filter(r => new Date(r.start_time + "Z").toDateString() === selectedDate.toDateString())
+    : reservations;
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* Navbar */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Boat Dashboard</h1>
         {userRole && (
@@ -246,7 +251,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Calendar Toggle */}
       <div className="mb-6">
         <button
           onClick={() => setCalendarOpen(!calendarOpen)}
@@ -258,25 +262,24 @@ export default function Dashboard() {
         {calendarOpen && (
           <div className="mt-4 border p-4 rounded-lg shadow bg-white">
             <h2 className="text-lg font-semibold mb-2">Upcoming Reservations</h2>
-            <Calendar tileContent={tileContent} />
-            <ul className="mt-4 space-y-1 text-sm">
-              {reservations.map((r) => {
-                const start = new Date(r.start_time);
-                return (
-                  <li key={r.reservation_id}>
-                    {start.toLocaleDateString()} —{" "}
-                    {formatUTCtoLocalDisplay(r.start_time)} to{" "}
-                    {formatUTCtoLocalDisplay(r.end_time)} —{" "}
-                    <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
-                  </li>
-                );
-              })}
-            </ul>
+            <Calendar tileContent={tileContent} onClickDay={(value) => setSelectedDate(value)} />
+            <div className="mt-4 max-h-60 overflow-y-auto">
+              {selectedDate && reservationsForSelectedDate.length === 0 ? (
+                <p className="text-sm text-gray-500">No reservations on selected date.</p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {reservationsForSelectedDate.map((r) => (
+                    <li key={r.reservation_id}>
+                      {new Date(r.start_time).toLocaleDateString()} — {formatUTCtoLocalDisplay(r.start_time)} to {formatUTCtoLocalDisplay(r.end_time)} — <span className="font-semibold">{r.boat_name}</span> ({r.boat_type})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Search Bar */}
       <div className="mb-4">
         <input
           type="text"
