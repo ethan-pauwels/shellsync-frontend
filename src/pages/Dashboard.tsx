@@ -214,7 +214,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const reservationDates = reservations.map(r => new Date(r.start_time).toDateString());
+  const reservationDates = reservations.map(r => new Date(r.start_time + "Z").toDateString());
 
   const tileContent = ({ date }: { date: Date }) => {
     const isReserved = reservationDates.includes(date.toDateString());
