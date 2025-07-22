@@ -19,11 +19,17 @@ export default function QueryViewer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
       });
+
       const data = await res.json();
-      if (data.error) {
-        setError(data.error);
-      } else {
+
+      if (data.rows) {
         setResult(data.rows);
+      } else if (data.message) {
+        setResult([{ result: data.message }]); // display message as single row
+      } else if (data.detail) {
+        setError(data.detail);
+      } else {
+        setError("Unexpected response from server.");
       }
     } catch (err: any) {
       setError("Request failed: " + err.message);
@@ -40,7 +46,7 @@ export default function QueryViewer() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full border rounded-md p-2 h-32 text-sm font-mono"
-        placeholder="Enter SELECT query..."
+        placeholder="Enter any SQL query (SELECT, UPDATE, INSERT, DELETE)..."
       />
 
       <button
