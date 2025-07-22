@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveToken } from "../utils/auth.ts";
+import { saveToken, setUserRole } from "../utils/auth.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [roleMessage, setRoleMessage] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,8 +27,16 @@ export default function Login() {
       }
 
       const data = await res.json();
-      saveToken(data.access_token); // Store JWT
-      navigate("/dashboard");
+      saveToken(data.access_token);
+
+      const role = data.user?.role || "member"; // fallback if role isn't included
+      setUserRole(role);
+      setRoleMessage(`✅ Logged in as ${role}`);
+
+      setTimeout(() => {
+        setRoleMessage("");
+        navigate("/dashboard");
+      }, 2000); // brief banner display
     } catch (err) {
       setError("Invalid email or password");
     }
@@ -36,6 +45,11 @@ export default function Login() {
   return (
     <div className="p-6 max-w-sm mx-auto">
       <h1 className="text-2xl font-bold mb-4">Login</h1>
+      {roleMessage && (
+        <p className="bg-green-100 text-green-800 text-sm p-2 rounded mb-4">
+          {roleMessage}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
@@ -53,7 +67,7 @@ export default function Login() {
           required
           className="w-full border p-2 rounded"
         />
-        {error && <p className="text-red-600">{error}</p>}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded w-full"

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { getToken, clearToken } from "../utils/auth";
+import { getToken, clearToken, getUserRole } from "../utils/auth";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+
 
 interface Boat {
   id: number;
@@ -43,6 +44,7 @@ export default function Dashboard() {
   const [reservingBoatId, setReservingBoatId] = useState<number | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const fetchBoats = async () => {
     try {
@@ -208,6 +210,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     const token = getToken();
+    const role = getUserRole();
+    setUserRole(role);
+
     if (token) {
       fetchBoats();
       fetchReservations();
@@ -228,6 +233,11 @@ export default function Dashboard() {
       {/* Navbar */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Boat Dashboard</h1>
+        {userRole && (
+          <p className="text-sm text-gray-600 mt-1">
+            Logged in as <span className="font-semibold capitalize">{userRole}</span>
+          </p>
+        )}
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm"
