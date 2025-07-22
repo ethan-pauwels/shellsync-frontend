@@ -27,8 +27,8 @@ function formatForDateTimeLocalInput(date: string | Date): string {
 }
 
 function formatUTCtoLocalDisplay(datetime: string): string {
-  const d = new Date(datetime);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const utc = new Date(datetime + "Z");
+  return utc.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function Dashboard() {
