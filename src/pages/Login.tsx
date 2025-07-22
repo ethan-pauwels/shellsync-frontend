@@ -27,17 +27,32 @@ export default function Login() {
       }
 
       const data = await res.json();
-      saveToken(data.access_token);
+      const token = data.access_token;
+      saveToken(token);
 
-      const role = data.user?.role || "member"; // fallback if role isn't included
+      // ✅ Fetch user role from /users/me using token
+      const userRes = await fetch("https://shellsync.onrender.com/users/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!userRes.ok) {
+        throw new Error("Failed to fetch user info");
+      }
+
+      const userData = await userRes.json();
+      const role = userData.role || "member";
+
       setUserRole(role);
       setRoleMessage(`✅ Logged in as ${role}`);
 
       setTimeout(() => {
         setRoleMessage("");
         navigate("/dashboard");
-      }, 2000); // brief banner display
+      }, 2000);
     } catch (err) {
+      console.error(err);
       setError("Invalid email or password");
     }
   };
