@@ -60,7 +60,7 @@ export default function BrokenBoats() {
     try {
       setLoading(true);
       const token = getToken();
-      const res = await fetch(`https://shellsync.onrender.com/boats/${boatId}?status=broken`, {
+      const res = await fetch(`https://shellsync.onrender.com/boats/${boatId}?status=maintenance`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -76,7 +76,7 @@ export default function BrokenBoats() {
 
   const filteredBoats = boats.filter((boat) => {
     const matchesSearch = `${boat.name} ${boat.type}`.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = showBrokenOnly ? boat.status === "broken" : true;
+    const matchesStatus = showBrokenOnly ? boat.status === "maintenance" : true;
     return matchesSearch && matchesStatus;
   });
 
@@ -127,7 +127,7 @@ export default function BrokenBoats() {
                   )}
                 </div>
                 <div>
-                  {boat.status === "broken" ? (
+                  {boat.status === "maintenance" ? (
                     <button
                       className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                       onClick={() => markFixed(boat.id)}
