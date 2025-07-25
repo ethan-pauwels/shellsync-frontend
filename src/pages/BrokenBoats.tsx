@@ -6,7 +6,7 @@ interface Boat {
   name: string;
   type: string;
   status: string;
-  updated_at?: string; // Optional timestamp for when the boat was last updated
+  updated_at?: string;
 }
 
 export default function BrokenBoats() {
@@ -65,7 +65,11 @@ export default function BrokenBoats() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error("Failed to mark as damaged");
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Failed to mark as damaged");
+      }
+
       await fetchBoats();
     } catch (err: any) {
       setError(err.message || "Damage failed");
@@ -115,12 +119,12 @@ export default function BrokenBoats() {
                   <p className="text-gray-600">Type: {boat.type}</p>
                   <p
                     className={`font-medium ${
-                      boat.status === "broken" ? "text-red-600" : "text-green-700"
+                      boat.status === "maintenance" ? "text-red-600" : "text-green-700"
                     }`}
                   >
-                    Status: {boat.status}
+                    Status: {boat.status === "maintenance" ? "Broken" : boat.status}
                   </p>
-                  {boat.status === "broken" && boat.updated_at && (
+                  {boat.status === "maintenance" && boat.updated_at && (
                     <p className="text-xs text-gray-500">
                       Marked broken: {new Date(boat.updated_at).toLocaleString()}
                     </p>
